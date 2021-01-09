@@ -74,6 +74,15 @@ class ReservationListView(generics.ListAPIView):
     queryset = Reservation.objects.all()
 
 
+class ReservationsWithWorkplace(generics.ListAPIView):
+    serializer_class = ReservationDetailSerializer
+    permission_classes = (IsAuthenticated,)
+
+    def get_queryset(self):
+        workplace_id = self.kwargs['pk']
+        return Reservation.objects.all().filter(workplace=workplace_id)
+
+
 class ReservationEditView(generics.RetrieveUpdateDestroyAPIView, ReservationUpdateMixin):
     serializer_class = ReservationDetailSerializer
     permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)

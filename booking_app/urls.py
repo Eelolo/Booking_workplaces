@@ -1,7 +1,8 @@
 from django.urls import path, re_path
 from booking_app.views import (
     OfficeCreateView, OfficeListView, OfficeEditView, WorkplaceCreateView, WorkplaceListView,
-    WorkplaceEditView, ReservationCreateView, ReservationListView, ReservationEditView
+    WorkplaceEditView, ReservationCreateView, ReservationListView, ReservationEditView,
+    ReservationsWithWorkplace
 )
 
 urlpatterns = [
@@ -21,6 +22,6 @@ urlpatterns = [
 
     path('reservation/create/', ReservationCreateView.as_view()),
     path('reservations/', ReservationListView.as_view()),
+    path('reservations/<int:pk>/', ReservationsWithWorkplace.as_view(), name='ReservationsWithWorkplaceView'),
     path('reservation/edit/<int:pk>/', ReservationEditView.as_view(), name='ReservationEditView'),
-
 ]
