@@ -66,7 +66,14 @@ def _handle_not_authenticated(exc, context, response):
     return response
 
 def _handle_permission_denied(exc, context, response):
-    pass
+    response.data = {
+        'Error': {
+            'status_code': 403,
+            'error_message': 'You do not have permission to perform this action.',
+            'code': 'FORBIDDEN'
+        }
+    }
+    return response
 
 def _handle_not_found(exc, context, response):
     pass
