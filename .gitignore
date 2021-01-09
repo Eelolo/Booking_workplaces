@@ -1,2 +1,4 @@
 .env
 booking_workplaces/__pycache__/
+booking_app/__pycache__/
+booking_app/migrations/__pycache__/
