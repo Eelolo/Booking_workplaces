@@ -1,11 +1,12 @@
 from datetime import datetime, timedelta
-from booking_app.models import Reservation
+from booking_app.models import Workplace, Reservation
 
 class Validations:
     def set_attributes(self, request, **kwargs):
         self.request = request
         self.today = datetime.now()
         self.user = request.data['user']
+        self.selected_office = request.data['office']
         self.selected_workplace = int(request.data['workplace'])
         self.initial_day = datetime.strptime(request.data['initial_day'], "%Y-%m-%d")
         self.reservation_ends = datetime.strptime(request.data['reservation_ends'], "%Y-%m-%d")
@@ -58,6 +59,18 @@ class Validations:
                 }
             return content
 
+    def from_this_office_validation(self):
+        workplaces_in_selected_office = \
+            [workplace.pk for workplace in Workplace.objects.all().filter(office=self.selected_office)]
+
+        if self.selected_workplace not in workplaces_in_selected_office:
+            content = {
+                'Error': 'Workplace not from this office. Workplaces in selected office {}.'.format(
+                    workplaces_in_selected_office
+                )
+            }
+            return content
+
     def run_all_validations(self, request, **kwargs):
         self.set_attributes(request, **kwargs)
 
@@ -68,6 +81,7 @@ class Validations:
             self.two_weeks_validation(),
             self.reservation_owner_validation(),
             self.crossing_in_time_validation(),
+            self.from_this_office_validation(),
         ]
         for validation in validations:
             try:
