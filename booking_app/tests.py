@@ -3,9 +3,9 @@ from rest_framework.test import APITestCase
 from rest_framework import status
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
-from booking_app.models import Office, Workplace
+from booking_app.models import Office, Workplace, Reservation
 from django.urls import reverse
-
+from datetime import datetime, timedelta
 
 
 class RegistrationTestCase(APITestCase):
@@ -113,4 +113,148 @@ class OfficeTestCases(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
         response = self.client.delete(reverse('OfficeEditView', kwargs={'pk': 1}))
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class WorkplaceTestCases(APITestCase):
+    create_url = '/workplace/create/'
+    list_url = '/workplaces/'
+
+    def setUp(self):
+        self.user = User.objects.create_superuser(username='super_testcase', password='testcase')
+        self.token = Token.objects.create(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+
+    def test_create_workplace(self):
+        office = Office.objects.create(workplaces=5)
+        data = {
+            'office': office.pk,
+            'price': 1000
+        }
+        response = self.client.post(self.create_url, data)
+        workplace_one = Workplace.objects.all()[0]
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(workplace_one.office.pk, data['office'])
+        self.assertEqual(workplace_one.price, data['price'])
+
+        response = self.client.post(self.create_url, data)
+        workplace_two = Workplace.objects.all()[1]
+        self.assertEqual(response.data['id'], workplace_two.pk)
+
+        response = self.client.get(OfficeTestCases.list_url)
+        self.assertEqual(dict(response.data[0])['workplaces_id'], [workplace_one.pk, workplace_two.pk])
+
+    def test_workplaces_list(self):
+        office = Office.objects.create(workplaces=5)
+        Workplace.objects.create(office=office, price=1000)
+        Workplace.objects.create(office=office, price=1000)
+
+        response = self.client.get(self.list_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(isinstance(list(response.data), list), True)
+        self.assertEqual(isinstance(dict(list(response.data)[1]), dict), True)
+
+    def test_free_workplaces_in_range(self):
+        office = Office.objects.create(workplaces=5)
+        workplace_one = Workplace.objects.create(office=office, price=1000)
+        workplace_two = Workplace.objects.create(office=office, price=1000)
+        workplace_three = Workplace.objects.create(office=office, price=1000)
+        workplace_four = Workplace.objects.create(office=office, price=1000)
+
+        date_from = (datetime.now() + timedelta(days=6)).date()
+        date_to = (datetime.now() + timedelta(days=12)).date()
+
+        response = self.client.get(
+            reverse('Free_workplaces_in_range', kwargs={'date_from': date_from, 'date_to': date_to})
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        id_from_response = [response.data[workplace].get('id') for workplace in range(len(response.data))]
+        self.assertEqual(id_from_response, [workplace_one.pk, workplace_two.pk, workplace_three.pk, workplace_four.pk])
+
+        Reservation.objects.create(
+            user=self.user,
+            office=office,
+            workplace=workplace_four,
+            initial_day=datetime.now() + timedelta(days=13),
+            reservation_ends=datetime.now() + timedelta(days=19)
+        )
+
+        Reservation.objects.create(
+            user=self.user,
+            office=office,
+            workplace=workplace_one,
+            initial_day=datetime.now(),
+            reservation_ends=datetime.now() + timedelta(days=7)
+        )
+
+        response = self.client.get(
+            reverse('Free_workplaces_in_range', kwargs={'date_from': date_from, 'date_to': date_to})
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        id_from_response = [response.data[workplace].get('id') for workplace in range(len(response.data))]
+        self.assertEqual(id_from_response, [workplace_two.pk, workplace_three.pk, workplace_four.pk])
+
+        Reservation.objects.create(
+            user=self.user,
+            office=office,
+            workplace=workplace_two,
+            initial_day=datetime.now() + timedelta(days=7),
+            reservation_ends=datetime.now() + timedelta(days=11)
+        )
+        response = self.client.get(
+            reverse('Free_workplaces_in_range', kwargs={'date_from': date_from, 'date_to': date_to})
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        id_from_response = [response.data[workplace].get('id') for workplace in range(len(response.data))]
+        self.assertEqual(id_from_response, [workplace_three.pk, workplace_four.pk])
+
+        Reservation.objects.create(
+            user=self.user,
+            office=office,
+            workplace=workplace_three,
+            initial_day=datetime.now() + timedelta(days=11),
+            reservation_ends=datetime.now() + timedelta(days=17)
+        )
+        response = self.client.get(
+            reverse('Free_workplaces_in_range', kwargs={'date_from': date_from, 'date_to': date_to})
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        id_from_response = [response.data[workplace].get('id') for workplace in range(len(response.data))]
+        self.assertEqual(id_from_response, [workplace_four.pk])
+
+        response = self.client.get(
+            reverse('Free_workplaces_in_range', kwargs={'date_from': date_to, 'date_to': date_from})
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        id_from_response = [response.data[workplace].get('id') for workplace in range(len(response.data))]
+        self.assertEqual(id_from_response, [workplace_one.pk, workplace_two.pk, workplace_three.pk, workplace_four.pk])
+
+
+    def test_edit_workplace(self):
+        office = Office.objects.create(workplaces=5)
+        workplace = Workplace.objects.create(office=office, price=1000)
+
+        response = self.client.get(reverse('WorkplaceEditView', kwargs={'pk': workplace.pk}))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['id'], workplace.pk)
+
+        response = self.client.patch(reverse('WorkplaceEditView', kwargs={'pk': workplace.pk}), data={'price': 1100})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(Workplace.objects.all().get(pk=workplace.pk).price, 1100)
+
+        response = self.client.delete(reverse('WorkplaceEditView', kwargs={'pk': workplace.pk}))
+        workplaces = Workplace.objects.all()
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(list(workplaces), [])
+
+    def test_workplace_permissions(self):
+        testcase_user = User.objects.create_user(username='testcase', password='testcase')
+        self.client.force_authenticate(user=testcase_user)
+
+        office = Office.objects.create(workplaces=5)
+
+        response = self.client.post(self.create_url, {'office': 1, 'price': 1000})
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+        response = self.client.delete(reverse('WorkplaceEditView', kwargs={'pk': 1}))
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
