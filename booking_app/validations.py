@@ -5,10 +5,16 @@ class Validations:
         self.request = request
         self.today = datetime.now()
         self.initial_day = datetime.strptime(request.data['initial_day'], "%Y-%m-%d")
+        self.reservation_ends = datetime.strptime(request.data['reservation_ends'], "%Y-%m-%d")
 
     def initial_day_gte_then_today_validation(self):
         if self.today - timedelta(days=1) > self.initial_day:
             content = {'Error': 'Initial day date must not be earlier than today.'}
+            return content
+
+    def Initial_date_gte_end_date_validation(self):
+        if self.initial_day > self.reservation_ends:
+            content = {'Error': 'Initial day date must not be greater than reservation_ends.'}
             return content
 
     def run_all_validations(self, request, **kwargs):
@@ -16,7 +22,7 @@ class Validations:
 
         validations = [
             self.initial_day_gte_then_today_validation(),
-
+            self.Initial_date_gte_end_date_validation(),
         ]
         for validation in validations:
             try:
