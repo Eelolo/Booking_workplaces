@@ -258,3 +258,187 @@ class WorkplaceTestCases(APITestCase):
 
         response = self.client.delete(reverse('WorkplaceEditView', kwargs={'pk': 1}))
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class ReservationTestCases(APITestCase):
+    create_url = '/reservation/create/'
+    list_url = '/reservations/'
+
+    def setUp(self):
+        self.user = User.objects.create_superuser(username='super_testcase', password='testcase')
+        self.token = Token.objects.create(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+
+
+    def test_create_reservation(self):
+        office = Office.objects.create(workplaces=5)
+        workplace_one = Workplace.objects.create(office=office, price=1000)
+        workplace_two = Workplace.objects.create(office=office, price=1000)
+
+        data = {
+            'user': self.user.username,
+            'office': office.pk,
+            'workplace': 1,
+            'initial_day': str(datetime.now().date()),
+            'reservation_ends': str((datetime.now() + timedelta(days=6)).date())
+        }
+
+        response = self.client.post(self.create_url, data)
+        reservation = Reservation.objects.all()[0]
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(reservation.pk, 1)
+        self.assertEqual(reservation.user.username, data['user'])
+        self.assertEqual(reservation.office.pk, data['office'])
+        self.assertEqual(reservation.workplace.pk, response.data['workplace'])
+        self.assertEqual(str(reservation.initial_day), response.data['initial_day'])
+        self.assertEqual(str(reservation.reservation_ends), response.data['reservation_ends'])
+
+        data['workplace'] = workplace_two.pk
+        data['initial_day'] = str((datetime.now() + timedelta(days=10)).date())
+        data['reservation_ends'] = str((datetime.now() + timedelta(days=16)).date())
+        response = self.client.post(self.create_url, data)
+        reservation = Reservation.objects.all()[1]
+        self.assertEqual(reservation.pk, 2)
+
+        days_delta = (reservation.reservation_ends - reservation.initial_day).days
+        reservation_days = [str(reservation.initial_day + timedelta(days=delta)) for delta in range(days_delta + 1)]
+        self.assertEqual(reservation_days, response.data['reservation_days'])
+
+        data['initial_day'] = str((datetime.now() + timedelta(days=7)).date())
+        data['reservation_ends'] = str((datetime.now() + timedelta(days=13)).date())
+        response = self.client.post(self.create_url, data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        data['initial_day'] = str((datetime.now() + timedelta(days=11)).date())
+        data['reservation_ends'] = str((datetime.now() + timedelta(days=15)).date())
+        response = self.client.post(self.create_url, data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        data['initial_day'] = str((datetime.now() + timedelta(days=13)).date())
+        data['reservation_ends'] = str((datetime.now() + timedelta(days=19)).date())
+        response = self.client.post(self.create_url, data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        data['initial_day'] = str((datetime.now() + timedelta(days=7)).date())
+        data['reservation_ends'] = str((datetime.now() + timedelta(days=22)).date())
+        response = self.client.post(self.create_url, data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        data['initial_day'] = str((datetime.now() + timedelta(days=61)).date())
+        data['reservation_ends'] = str((datetime.now() + timedelta(days=62)).date())
+        response = self.client.post(self.create_url, data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        data['initial_day'] = str((datetime.now() + timedelta(days=8)).date())
+        data['reservation_ends'] = str((datetime.now() + timedelta(days=7)).date())
+        response = self.client.post(self.create_url, data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+        data['initial_day'] = str((datetime.now() - timedelta(days=1)).date())
+        data['reservation_ends'] = str((datetime.now() + timedelta(days=7)).date())
+        response = self.client.post(self.create_url, data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+    def test_reservation_list(self):
+        office = Office.objects.create(workplaces=5)
+        workplace_one = Workplace.objects.create(office=office, price=1000)
+        workplace_two = Workplace.objects.create(office=office, price=1000)
+        reservation_one = Reservation.objects.create(
+            user=self.user,
+            office=office,
+            workplace=workplace_one,
+            initial_day=datetime.now().date(),
+            reservation_ends=(datetime.now() + timedelta(days=6)).date()
+        )
+        reservation_two = Reservation.objects.create(
+            user=self.user,
+            office=office,
+            workplace=workplace_two,
+            initial_day=datetime.now().date(),
+            reservation_ends=(datetime.now() + timedelta(days=6)).date()
+        )
+        reservation_three = Reservation.objects.create(
+            user=self.user,
+            office=office,
+            workplace=workplace_two,
+            initial_day=(datetime.now() + timedelta(days=6)).date(),
+            reservation_ends=(datetime.now()+ timedelta(days=7)).date()
+        )
+        response = self.client.get(self.list_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(isinstance(list(response.data), list), True)
+        self.assertEqual(isinstance(dict(list(response.data)[1]), dict), True)
+
+        response = self.client.get(reverse('ReservationsWithWorkplaceView', kwargs={'pk': workplace_two.pk}))
+        id_from_response = [response.data[reservation].get('id') for reservation in range(len(response.data))]
+        self.assertEqual(id_from_response, [reservation_two.pk, reservation_three.pk])
+
+    def test_edit_reservation(self):
+        office = Office.objects.create(workplaces=5)
+        workplace_one = Workplace.objects.create(office=office, price=1000)
+        reservation_one = Reservation.objects.create(
+            user=self.user,
+            office=office,
+            workplace=workplace_one,
+            initial_day=datetime.now().date(),
+            reservation_ends=(datetime.now() + timedelta(days=6)).date()
+        )
+        reservation_two = Reservation.objects.create(
+            user=self.user,
+            office=office,
+            workplace=workplace_one,
+            initial_day=(datetime.now() + timedelta(days=7)).date(),
+            reservation_ends=(datetime.now() + timedelta(days=13)).date()
+        )
+        response = self.client.get(reverse('ReservationEditView', kwargs={'pk': reservation_one.pk}))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['id'], reservation_one.pk)
+
+        response = self.client.patch(reverse(
+            'ReservationEditView',
+            kwargs={'pk': reservation_one.pk}),
+            data={'initial_day': str((datetime.now() + timedelta(days=1)).date())}
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        reservation_initial_day = Reservation.objects.all().get(pk=reservation_one.pk).initial_day
+        self.assertEqual(reservation_initial_day, (datetime.now() + timedelta(days=1)).date())
+
+        response = self.client.patch(reverse(
+            'ReservationEditView',
+            kwargs={'pk': reservation_one.pk}),
+            data={'reservation_ends': str((datetime.now() + timedelta(days=7)).date())}
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        self.client.delete(reverse('ReservationEditView', kwargs={'pk': reservation_one.pk}))
+        response = self.client.delete(reverse('ReservationEditView', kwargs={'pk': reservation_two.pk}))
+        reservations = Reservation.objects.all()
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        response = self.client.get(self.list_url)
+        self.assertEqual(list(reservations), list(response.data))
+
+    def test_reservation_permissions(self):
+        testcase_user = User.objects.create_user(username='testcase', password='testcase')
+        self.client.force_authenticate(user=testcase_user)
+
+        office = Office.objects.create(workplaces=5)
+        workplace_one = Workplace.objects.create(office=office, price=1000)
+        workplace_two = Workplace.objects.create(office=office, price=1000)
+        reservation = Reservation.objects.create(
+            user=self.user,
+            office=office,
+            workplace=workplace_one,
+            initial_day=datetime.now().date(),
+            reservation_ends=(datetime.now() + timedelta(days=6)).date()
+        )
+        response = self.client.patch(reverse(
+            'ReservationEditView',
+            kwargs={'pk': reservation.pk}),
+            data={'workplace': workplace_two.pk}
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+        response = self.client.delete(reverse('ReservationEditView', kwargs={'pk': reservation.pk}))
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
