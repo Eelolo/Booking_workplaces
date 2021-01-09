@@ -1,15 +1,33 @@
 from datetime import datetime, timedelta
 from booking_app.models import Workplace, Reservation
+from django.db.models import Q
+
 
 class Validations:
     def set_attributes(self, request, **kwargs):
         self.request = request
         self.today = datetime.now()
-        self.user = request.data['user']
-        self.selected_office = request.data['office']
-        self.selected_workplace = int(request.data['workplace'])
-        self.initial_day = datetime.strptime(request.data['initial_day'], "%Y-%m-%d")
-        self.reservation_ends = datetime.strptime(request.data['reservation_ends'], "%Y-%m-%d")
+        if not kwargs:
+            self.user = request.data['user']
+            self.selected_workplace = int(request.data['workplace'])
+            self.selected_office = request.data['office']
+            self.initial_day = datetime.strptime(request.data['initial_day'], "%Y-%m-%d")
+            self.reservation_ends = datetime.strptime(request.data['reservation_ends'], "%Y-%m-%d")
+        else:
+            self.reservation = Reservation.objects.get(pk=kwargs['pk'])
+            self.pk = self.reservation.pk
+            self.selected_workplace = self.reservation.workplace.pk
+            self.selected_office = self.reservation.office
+            self.initial_day = datetime.combine(self.reservation.initial_day, datetime.min.time())
+            self.reservation_ends = datetime.combine(self.reservation.reservation_ends, datetime.min.time())
+
+            try:
+                self.selected_workplace = int(request.data['workplace'])
+                self.selected_office = request.data['office']
+                self.initial_day = datetime.strptime(request.data['initial_day'], "%Y-%m-%d")
+                self.reservation_ends = datetime.strptime(request.data['reservation_ends'], "%Y-%m-%d")
+            except KeyError:
+                pass
 
     def initial_day_gte_then_today_validation(self):
         if self.today - timedelta(days=1) > self.initial_day:
@@ -37,8 +55,10 @@ class Validations:
 
     def reservation_owner_validation(self):
         content = {'Error': 'Required is your username.'}
-
-        username = self.user
+        try:
+            username = self.user
+        except AttributeError:
+            username = self.reservation.user.username
 
         if self.request.user.username != username and not self.request.user.is_staff:
             return content
@@ -50,6 +70,11 @@ class Validations:
             (Q(initial_day__lte=self.initial_day) & Q(reservation_ends__gte=self.reservation_ends))
         ).filter(workplace=self.selected_workplace)
         reservations_id = [value['pk'] for value in reservations.values('pk')]
+
+        try:
+            reservations_id.remove(self.pk)
+        except AttributeError:
+            pass
 
         if reservations_id != []:
             content = {
