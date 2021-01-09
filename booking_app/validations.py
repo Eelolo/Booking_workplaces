@@ -24,6 +24,13 @@ class Validations:
             content = {'Error': "It's very far in time."}
             return content
 
+    def two_weeks_validation(self):
+        after_2_weeks = self.initial_day + timedelta(days=14)
+
+        if after_2_weeks - self.initial_day < self.reservation_ends - self.initial_day:
+            content = {'Error': 'Maximum 2 weeks.'}
+            return content
+
     def run_all_validations(self, request, **kwargs):
         self.set_attributes(request, **kwargs)
 
@@ -31,6 +38,7 @@ class Validations:
             self.initial_day_gte_then_today_validation(),
             self.Initial_date_gte_end_date_validation(),
             self.two_months_validation(),
+            self.two_weeks_validation(),
         ]
         for validation in validations:
             try:
