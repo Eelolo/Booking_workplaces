@@ -1,4 +1,4 @@
-from rest_framework.mixins import CreateModelMixinn, UpdateModelMixin
+from rest_framework.mixins import CreateModelMixin, UpdateModelMixin
 from booking_app.validations import Validations
 from rest_framework.response import Response
 from rest_framework import status
