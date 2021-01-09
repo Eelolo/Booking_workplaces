@@ -86,7 +86,14 @@ def _handle_not_found(exc, context, response):
     return response
 
 def _handle_method_not_allowed(exc, context, response):
-    pass
+    response.data = {
+        'Error': {
+            'status_code': 405,
+            'error_message': "Method '{}' not allowed.".format(context['request'].method),
+            'code': 'METHOD_NOT_ALLOWED'
+        }
+    }
+    return response
 
 def _handle_not_acceptable(exc, context, response):
     pass
