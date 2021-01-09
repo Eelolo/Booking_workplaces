@@ -96,7 +96,14 @@ def _handle_method_not_allowed(exc, context, response):
     return response
 
 def _handle_not_acceptable(exc, context, response):
-    pass
+    response.data = {
+        'Error': {
+            'status_code': 406,
+            'error_message': 'Could not satisfy the request Accept header.',
+            'code': 'NOT_ACCEPTABLE'
+        }
+    }
+    return response
 
 def _handle_unsupported_media_type(exc, context, response):
     pass
