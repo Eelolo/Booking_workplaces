@@ -36,7 +36,14 @@ def _handle_validation_error(exc, context, response):
     return response
 
 def _handle_parse_error(exc, context, response):
-    pass
+    response.data = {
+        'Error': {
+            'status_code': 400,
+            'error_message': 'Malformed request.',
+            'code': 'BAD_REQUEST'
+        }
+    }
+    return response
 
 def _handle_authentication_failed(exc, context, response):
     pass
