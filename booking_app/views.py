@@ -12,3 +12,9 @@ class OfficeListView(generics.ListAPIView):
     serializer_class = OfficeDetailSerializer
     permission_classes = (IsAuthenticated,)
     queryset = Office.objects.all()
+
+
+class OfficeEditView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = OfficeDetailSerializer
+    permission_classes = (IsAuthenticated, IsAdminUser)
+    queryset = Office.objects.all()
