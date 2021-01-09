@@ -116,4 +116,11 @@ def _handle_unsupported_media_type(exc, context, response):
     return response
 
 def _handle_throttled(exc, context, response):
-    pass
+    response.data = {
+        'Error': {
+            'status_code': 429,
+            'error_message': 'Request was throttled.',
+            'code': 'TOO_MANY_REQUESTS'
+        }
+    }
+    return response
