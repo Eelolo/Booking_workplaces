@@ -3,6 +3,8 @@ from booking_app.serializers import OfficeDetailSerializer, WorkplaceDetailSeria
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from booking_app.permissions import IsOwnerOrReadOnly
 from booking_app.models import Office, Workplace, Reservation
+from booking_app.mixins import CreateReservationMixin
+
 
 class OfficeCreateView(generics.CreateAPIView):
     serializer_class = OfficeDetailSerializer
@@ -38,7 +40,7 @@ class WorkplaceEditView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Workplace.objects.all()
 
 
-class ReservationCreateView(generics.CreateAPIView):
+class ReservationCreateView(generics.CreateAPIView, CreateReservationMixin):
     serializer_class = ReservationDetailSerializer
     permission_classes = (IsAuthenticated,)
 
