@@ -17,12 +17,20 @@ class Validations:
             content = {'Error': 'Initial day date must not be greater than reservation_ends.'}
             return content
 
+    def two_months_validation(self):
+        after_2_months = self.today + timedelta(days=60)
+
+        if after_2_months - self.today < self.initial_day - self.today:
+            content = {'Error': "It's very far in time."}
+            return content
+
     def run_all_validations(self, request, **kwargs):
         self.set_attributes(request, **kwargs)
 
         validations = [
             self.initial_day_gte_then_today_validation(),
             self.Initial_date_gte_end_date_validation(),
+            self.two_months_validation(),
         ]
         for validation in validations:
             try:
