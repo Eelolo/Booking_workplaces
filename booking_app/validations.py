@@ -4,6 +4,7 @@ class Validations:
     def set_attributes(self, request, **kwargs):
         self.request = request
         self.today = datetime.now()
+        self.user = request.data['user']
         self.initial_day = datetime.strptime(request.data['initial_day'], "%Y-%m-%d")
         self.reservation_ends = datetime.strptime(request.data['reservation_ends'], "%Y-%m-%d")
 
@@ -31,6 +32,14 @@ class Validations:
             content = {'Error': 'Maximum 2 weeks.'}
             return content
 
+    def reservation_owner_validation(self):
+        content = {'Error': 'Required is your username.'}
+
+        username = self.user
+
+        if self.request.user.username != username and not self.request.user.is_staff:
+            return content
+
     def run_all_validations(self, request, **kwargs):
         self.set_attributes(request, **kwargs)
 
@@ -39,6 +48,7 @@ class Validations:
             self.Initial_date_gte_end_date_validation(),
             self.two_months_validation(),
             self.two_weeks_validation(),
+            self.reservation_owner_validation(),
         ]
         for validation in validations:
             try:
