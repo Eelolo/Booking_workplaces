@@ -1,5 +1,5 @@
 from rest_framework import generics
-from booking_app.serializers import OfficeDetailSerializer, WorkplaceDetailSerializer
+from booking_app.serializers import OfficeDetailSerializer, WorkplaceDetailSerializer, ReservationDetailSerializer
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from booking_app.models import Office, Workplace
 
@@ -35,3 +35,8 @@ class WorkplaceEditView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = WorkplaceDetailSerializer
     permission_classes = (IsAuthenticated, IsAdminUser)
     queryset = Workplace.objects.all()
+
+
+class ReservationCreateView(generics.CreateAPIView):
+    serializer_class = ReservationDetailSerializer
+    permission_classes = (IsAuthenticated,)
