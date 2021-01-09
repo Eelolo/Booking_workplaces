@@ -1,10 +1,12 @@
 from datetime import datetime, timedelta
+from booking_app.models import Reservation
 
 class Validations:
     def set_attributes(self, request, **kwargs):
         self.request = request
         self.today = datetime.now()
         self.user = request.data['user']
+        self.selected_workplace = int(request.data['workplace'])
         self.initial_day = datetime.strptime(request.data['initial_day'], "%Y-%m-%d")
         self.reservation_ends = datetime.strptime(request.data['reservation_ends'], "%Y-%m-%d")
 
@@ -40,6 +42,22 @@ class Validations:
         if self.request.user.username != username and not self.request.user.is_staff:
             return content
 
+    def crossing_in_time_validation(self):
+        reservations = Reservation.objects.all().filter(
+            (Q(initial_day__lte=self.initial_day) & Q(reservation_ends__gte=self.initial_day) & Q(reservation_ends__lte=self.reservation_ends)) |
+            (Q(initial_day__gte=self.initial_day) & Q(initial_day__lte=self.reservation_ends) & Q(reservation_ends__gte=self.reservation_ends)) |
+            (Q(initial_day__lte=self.initial_day) & Q(reservation_ends__gte=self.reservation_ends))
+        ).filter(workplace=self.selected_workplace)
+        reservations_id = [value['pk'] for value in reservations.values('pk')]
+
+        if reservations_id != []:
+            content = {
+                    'Error': 'Selected workplace is already reserved in reservation: id = {}.'.format(
+                        reservations_id
+                    )
+                }
+            return content
+
     def run_all_validations(self, request, **kwargs):
         self.set_attributes(request, **kwargs)
 
@@ -49,6 +67,7 @@ class Validations:
             self.two_months_validation(),
             self.two_weeks_validation(),
             self.reservation_owner_validation(),
+            self.crossing_in_time_validation(),
         ]
         for validation in validations:
             try:
