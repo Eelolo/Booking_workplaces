@@ -1,6 +1,7 @@
 from django.urls import path
 from booking_app.views import (
-    OfficeCreateView, OfficeListView, OfficeEditView, WorkplaceCreateView, WorkplaceListView
+    OfficeCreateView, OfficeListView, OfficeEditView, WorkplaceCreateView, WorkplaceListView,
+    WorkplaceEditView
 )
 
 urlpatterns = [
@@ -9,4 +10,6 @@ urlpatterns = [
     path('office/edit/<int:pk>/', OfficeEditView.as_view()),
     path('workplace/create/', WorkplaceCreateView.as_view()),
     path('workplaces/', WorkplaceListView.as_view()),
+    path('workplace/edit/<int:pk>/', WorkplaceEditView.as_view(), name='WorkplaceEditView'),
+
 ]

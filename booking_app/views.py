@@ -29,3 +29,9 @@ class WorkplaceListView(generics.ListAPIView):
     serializer_class = WorkplaceDetailSerializer
     permission_classes = (IsAuthenticated,)
     queryset = Workplace.objects.all()
+
+
+class WorkplaceEditView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = WorkplaceDetailSerializer
+    permission_classes = (IsAuthenticated, IsAdminUser)
+    queryset = Workplace.objects.all()
