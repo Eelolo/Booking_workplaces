@@ -106,7 +106,14 @@ def _handle_not_acceptable(exc, context, response):
     return response
 
 def _handle_unsupported_media_type(exc, context, response):
-    pass
+    response.data = {
+        'Error': {
+            'status_code': 415,
+            'error_message': 'Unsupported media type in request.',
+            'code': 'UNSUPPORTED_MEDIA_TYPE'
+        }
+    }
+    return response
 
 def _handle_throttled(exc, context, response):
     pass
