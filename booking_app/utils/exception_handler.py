@@ -56,7 +56,14 @@ def _handle_authentication_failed(exc, context, response):
     return response
 
 def _handle_not_authenticated(exc, context, response):
-    pass
+    response.data = {
+        'Error': {
+            'status_code': 401,
+            'error_message': 'Incorrect authentication credentials.',
+            'code': 'UNAUTHORIZED'
+        }
+    }
+    return response
 
 def _handle_permission_denied(exc, context, response):
     pass
