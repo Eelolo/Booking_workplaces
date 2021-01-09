@@ -19,3 +19,9 @@ class OfficeDetailSerializer(serializers.ModelSerializer):
             workplaces_id.append(workplace.pk)
 
         return workplaces_id
+
+
+class WorkplaceDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Workplace
+        fields = '__all__'
