@@ -76,7 +76,14 @@ def _handle_permission_denied(exc, context, response):
     return response
 
 def _handle_not_found(exc, context, response):
-    pass
+    response.data = {
+        'Error': {
+            'status_code': 404,
+            'error_message': 'Not found.',
+            'code': 'NOT_FOUND'
+        }
+    }
+    return response
 
 def _handle_method_not_allowed(exc, context, response):
     pass
