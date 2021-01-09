@@ -2,6 +2,8 @@ from rest_framework.mixins import CreateModelMixinn, UpdateModelMixin
 from booking_app.validations import Validations
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.exceptions import ValidationError
+
 
 class CreateReservationMixin(CreateModelMixin, Validations):
     def create(self, request, *args, **kwargs):
@@ -10,7 +12,7 @@ class CreateReservationMixin(CreateModelMixin, Validations):
 
         content = self.run_all_validations(request)
         if content:
-            return Response(content, status=status.HTTP_400_BAD_REQUEST)
+            raise ValidationError(content)
 
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
@@ -27,7 +29,7 @@ class CreateReservationMixin(CreateModelMixin, Validations):
 
             content = self.run_all_validations(request, **kwargs)
             if content:
-                return Response(content, status=status.HTTP_400_BAD_REQUEST)
+                raise ValidationError(content)
 
             if getattr(instance, '_prefetched_objects_cache', None):
                 instance._prefetched_objects_cache = {}
