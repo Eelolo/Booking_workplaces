@@ -13,11 +13,14 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 from pathlib import Path
 
 import os
+from dotenv import load_dotenv
+
 from django.core.exceptions import ImproperlyConfigured
 
+load_dotenv()
 def get_env_value(env_variable):
     try:
-        return os.environ[env_variable]
+        return os.getenv(env_variable)
     except KeyError:
         error_msg = 'Set the {} environment variable'.format(env_variable)
         raise ImproperlyConfigured(error_msg)
