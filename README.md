@@ -80,7 +80,9 @@ GET : returns your account information
 PUT : takes field to update  
 Example:
 ```
-{"email": "newemail@gmail.com"}
+{
+  "email": "newemail@gmail.com"
+}
 ```
 PATCH : takes all ruquired fields to update.  
 Example:
